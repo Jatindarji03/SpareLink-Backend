@@ -7,10 +7,6 @@ const mechanicSchema = new mongoose.Schema({
     },
     shopName:{
         type:String
-    },
-    phoneNumber:{
-        type:String,
-        unique:true,
     }
 },{timestamps:true});
 const Mechanic = mongoose.model('Mechanic', mechanicSchema);

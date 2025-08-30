@@ -3,51 +3,183 @@ import User from "../models/userModel.js";
 import Mechanic from "../models/mechanicModel.js";
 import SupplierRequest from "../models/supplierRequestModel.js";
 import bcrypt from 'bcrypt'
-const createUser = async (req,res)=>{
-    try{
-        const{name,email,password,role}=req.body;
+import jwt from 'jsonwebtoken';
+
+const generateToken = (user) => {
+    const secret = process.env.JWT_SECRET;
+    return jwt.sign(
+        { id: user._id, roleId: user.roleId, email: user.email },
+        secret,
+        { expiresIn: '1D' })
+}
+
+const createUser = async (req, res) => {
+    try {
+        const { name, email, password, role } = req.body;
         //Check if all fields are present
-        if(!name || !email || !password || !role){
-            return res.status(400).json({message:"All fields are required"});
+        if (!name || !email || !password || !role) {
+            return res.status(400).json({ message: "All fields are required" });
         }
         //check if user already exists
-        const existingUser = await User.findOne({email});
-        const roleData=await Role.findOne({roleName:role});
+        const existingUser = await User.findOne({ email });
+        const roleData = await Role.findOne({ roleName: role });
 
-        if(existingUser){
-            return res.status(409).json({message:"User already exists"});
+        if (existingUser) {
+            return res.status(409).json({ message: "User already exists" });
+        }
+        if (password.length < 6) {
+            return res.status(400).json({
+                message: "Validation Error",
+                errors: {
+                    password: "Password must be at least 6 characters long"
+                }
+            });
         }
         const hashedPassword = await bcrypt.hash(password, 10);
         //create a new user
         const newUser = new User({
             name,
             email,
-            password:hashedPassword,
-            roleId:roleData._id
+            password: hashedPassword,
+            roleId: roleData._id
         });
         await newUser.save();
         /*If the role is mechanic, create a mechanic profile in the mechanic
          collection we can add the shop name and phone number later*/
-        if(role==='mechanic'){
+        if (role === 'mechanic') {
             const newMechanic = new Mechanic({
-                userId:newUser._id
+                userId: newUser._id
             });
             await newMechanic.save();
-        }else if(role==='supplier'){
+        } else if (role === 'supplier') {
             /* if the role is supplier move the data to request supplier collection
                if the admin approves the request then move the data to supplier collection
             */
-           const newSupplierRequest = new SupplierRequest({
-                userId:newUser._id
+            const newSupplierRequest = new SupplierRequest({
+                userId: newUser._id
             });
             await newSupplierRequest.save();
         }
-        return res.status(201).json({message:"User created successfully", user:newUser});
+        const options = {
+            expires: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // 3 days
+            httpOnly: true,
+            sameSite: 'strict',
+            secure: false,
+        }
+        const token = generateToken(newUser);
+        if (!token) {
+            return res.status(500).json({ error: "Failed to generate token" });
+        }
+        // Here you need to implement the send mail to the registred email address
 
-    }catch(error){
-        console.error("Error creating user:", error);
-        return res.status(500).json({message:"Internal server error"});
+        return res.cookie("authtoken", token, options).status(200).json({
+            data: newUser, message: "user registered successful"
+        });
+    } catch (error) {
+        if (error.name === "ValidationError") {
+            const validationErrors = {};
+
+            // Extract all validation error messages
+            Object.keys(error.errors).forEach((key) => {
+                validationErrors[key] = error.errors[key].message;
+            });
+            return res.status(400).json({ message: "Validation Error", errors: validationErrors });
+        }
+        if (error.code === 11000) {
+            const duplicateField = Object.keys(error.keyValue)[0];
+            return res.status(409).json({
+                message: `${duplicateField} already exists`,
+                field: duplicateField
+            });
+        }
+        return res.status(500).json({ message: "Internal server error" });
     }
 };
 
-export {createUser};
+const loginUser = async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        if (!email || !password) {
+            return res.status(400).json({ message: "All fields are required" });
+        }
+        const user = await User.findOne({ email: email });
+        if (!user) {
+            return res.status(401).json({ message: "User not found please enter correct email" });
+        }
+        const isPasswordMatch = await bcrypt.compare(password, user.password);
+        if (!isPasswordMatch) {
+            return res.status(401).json({ message: "Invalid password please enter correct password" });
+        }
+        const token = generateToken(user);
+        if (!token) {
+            return res.status(500).json({ error: "Failed to generate token" });
+        }
+        const options = {
+            expires: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // 3 days
+            httpOnly: true,
+            sameSite: 'strict',
+            secure: false,
+        }
+        return res.cookie("authtoken", token, options).status(200).json({ data: user, message: "Login successful" });
+
+    } catch (error) {
+        if (error.name === "ValidationError") {
+            const validationErrors = {};
+
+            // Extract all validation error messages
+            Object.keys(error.errors).forEach((key) => {
+                validationErrors[key] = error.errors[key].message;
+            });
+            return res.status(400).json({ message: "Validation Error", errors: validationErrors });
+        }
+        return res.status(500).json({ message: "Internal server error" });
+    }
+}
+const updateUser = async (req, res) => {
+    try{
+        const userId = req.params.id;
+        const {name,email,password,phoneNumber,address}=req.body;
+        const updatedData={};
+        if(name) updatedData.name=name;
+        if(password){
+            if(password.length<6){
+                return res.status(400).json({message:"Password must be at least 6 characters long"});
+            }
+            const hashedPassword = await bcrypt.hash(password, 10);
+            updatedData.password=hashedPassword;
+        }
+        if(phoneNumber) updatedData.phoneNumber=phoneNumber;
+
+        //checl if email not already exists
+        if(email){
+            const existingUser = await User.findOne({email:email});
+            if(existingUser){
+                return res.status(409).json({message:"Email already exists"});
+            }
+        }
+        if(address){
+            updatedData.address={};
+            if(address.streetAddress) updatedData.address.streetAddress=address.streetAddress;
+            if(address.city) updatedData.address.city=address.city;
+            if(address.state) updatedData.address.state=address.state;
+            if(address.pincode) updatedData.address.pincode=address.pincode;
+        }
+        const updatedUser = await User.findByIdAndUpdate(userId, updatedData, { new: true, runValidators: true });
+        if(!updatedUser){
+            return res.status(404).json({message:"User not found"});
+        }
+        return res.status(200).json({data:updatedUser,message:"User updated successfully"});
+
+    }catch(error){
+        if(error.name === "ValidationError") {
+            const validationErrors = {};
+            // Extract all validation error messages
+            Object.keys(error.errors).forEach((key) => {
+                validationErrors[key] = error.errors[key].message;
+            } );
+            return res.status(400).json({ message: "Validation Error", errors: validationErrors });
+        }
+        return res.status(500).json({ message: "Internal server error" });
+    }
+}
+export { createUser, loginUser,updateUser};

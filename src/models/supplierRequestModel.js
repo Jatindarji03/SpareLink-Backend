@@ -8,18 +8,11 @@ const supplierRequestSchema = new mongoose.Schema({
     shopName:{
         type:String,
     },
-    phoneNumber:{
-        type:String,
-        unique:true,
-    },
     status:{
         type:String,
         enum:['pending','approved','rejected'],
         default:'pending'
     },
-    address:{
-        type:String,
-    }
 }, { timestamps: true });
 const SupplierRequest = mongoose.model("SupplierRequest", supplierRequestSchema);
 export default SupplierRequest;
