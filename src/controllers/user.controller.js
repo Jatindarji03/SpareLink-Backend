@@ -4,6 +4,7 @@ import Mechanic from "../models/mechanicModel.js";
 import SupplierRequest from "../models/supplierRequestModel.js";
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken';
+import sendMail from "../utils/sendMail.js";
 
 const generateToken = (user) => {
     const secret = process.env.JWT_SECRET;
@@ -72,6 +73,35 @@ const createUser = async (req, res) => {
         }
         // Here you need to implement the send mail to the registred email address
 
+        if (role === 'mechanic') {
+            const subject = "Start Ordering Spare Parts with SpareLink 🚗🔧"
+            const text = `Hello ${name}
+            Welcome to SpareLink!\nYour account is ready, and you can now easily find and order spare parts from trusted suppliers.
+            Here’s how to get started:
+            1.Browse spare parts available from multiple suppliers.
+            2.Send a quotation request for the product you need.
+            3.Receive supplier offers and compare prices.
+            4.Place your order securely and track it in real-time.
+            Log in now to start your journey: [Login Page Link]
+            Need help? Reach us anytime at support@sparelink.com
+            We’re excited to make your spare part shopping faster and easier! 🚀
+            Best Regards,
+            The SpareLink Team`
+            sendMail(email,subject,text);
+        } else if (role === 'supplier') {
+            const subject = 'Your SpareLink Account is Pending Approval 🕒';
+            const text = `Hello ${name},
+            Thank you for registering with SpareLink.
+            Your account is currently under review by our admin team.
+            Once approved, you’ll be able to:
+            1.List your spare parts
+            2.Receive quotation requests from mechanics
+            3.Grow your business with SpareLink 🚀
+            We’ll notify you as soon as your account is approved.
+            Best Regards,
+            The SpareLink Team`;
+            sendMail(email,subject,text);
+        }
         return res.cookie("authtoken", token, options).status(200).json({
             data: newUser, message: "user registered successful"
         });
@@ -135,51 +165,52 @@ const loginUser = async (req, res) => {
         return res.status(500).json({ message: "Internal server error" });
     }
 }
+
 const updateUser = async (req, res) => {
-    try{
+    try {
         const userId = req.params.id;
-        const {name,email,password,phoneNumber,address}=req.body;
-        const updatedData={};
-        if(name) updatedData.name=name;
-        if(password){
-            if(password.length<6){
-                return res.status(400).json({message:"Password must be at least 6 characters long"});
+        const { name, email, password, phoneNumber, address } = req.body;
+        const updatedData = {};
+        if (name) updatedData.name = name;
+        if (password) {
+            if (password.length < 6) {
+                return res.status(400).json({ message: "Password must be at least 6 characters long" });
             }
             const hashedPassword = await bcrypt.hash(password, 10);
-            updatedData.password=hashedPassword;
+            updatedData.password = hashedPassword;
         }
-        if(phoneNumber) updatedData.phoneNumber=phoneNumber;
+        if (phoneNumber) updatedData.phoneNumber = phoneNumber;
 
         //checl if email not already exists
-        if(email){
-            const existingUser = await User.findOne({email:email});
-            if(existingUser){
-                return res.status(409).json({message:"Email already exists"});
+        if (email) {
+            const existingUser = await User.findOne({ email: email });
+            if (existingUser) {
+                return res.status(409).json({ message: "Email already exists" });
             }
         }
-        if(address){
-            updatedData.address={};
-            if(address.streetAddress) updatedData.address.streetAddress=address.streetAddress;
-            if(address.city) updatedData.address.city=address.city;
-            if(address.state) updatedData.address.state=address.state;
-            if(address.pincode) updatedData.address.pincode=address.pincode;
+        if (address) {
+            updatedData.address = {};
+            if (address.streetAddress) updatedData.address.streetAddress = address.streetAddress;
+            if (address.city) updatedData.address.city = address.city;
+            if (address.state) updatedData.address.state = address.state;
+            if (address.pincode) updatedData.address.pincode = address.pincode;
         }
         const updatedUser = await User.findByIdAndUpdate(userId, updatedData, { new: true, runValidators: true });
-        if(!updatedUser){
-            return res.status(404).json({message:"User not found"});
+        if (!updatedUser) {
+            return res.status(404).json({ message: "User not found" });
         }
-        return res.status(200).json({data:updatedUser,message:"User updated successfully"});
+        return res.status(200).json({ data: updatedUser, message: "User updated successfully" });
 
-    }catch(error){
-        if(error.name === "ValidationError") {
+    } catch (error) {
+        if (error.name === "ValidationError") {
             const validationErrors = {};
             // Extract all validation error messages
             Object.keys(error.errors).forEach((key) => {
                 validationErrors[key] = error.errors[key].message;
-            } );
+            });
             return res.status(400).json({ message: "Validation Error", errors: validationErrors });
         }
         return res.status(500).json({ message: "Internal server error" });
     }
 }
-export { createUser, loginUser,updateUser};
+export { createUser, loginUser, updateUser };
