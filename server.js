@@ -40,3 +40,6 @@ app.use("/api/roles", roleRoutes);
 
 import userRoutes from "./src/routes/user.routes.js";
 app.use("/api/users", userRoutes);
+
+import supplierRequestRoutes from "./src/routes/supplierRequest.routes.js";
+app.use('/api/supplier-requests', supplierRequestRoutes);

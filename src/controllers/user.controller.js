@@ -16,7 +16,7 @@ const generateToken = (user) => {
 
 const createUser = async (req, res) => {
     try {
-        const { name, email, password, role } = req.body;
+        const { name, email, password, role,shopName } = req.body;
         //Check if all fields are present
         if (!name || !email || !password || !role) {
             return res.status(400).json({ message: "All fields are required" });
@@ -57,7 +57,8 @@ const createUser = async (req, res) => {
                if the admin approves the request then move the data to supplier collection
             */
             const newSupplierRequest = new SupplierRequest({
-                userId: newUser._id
+                userId: newUser._id,
+                shopName:shopName
             });
             await newSupplierRequest.save();
         }
@@ -132,7 +133,7 @@ const loginUser = async (req, res) => {
         if (!email || !password) {
             return res.status(400).json({ message: "All fields are required" });
         }
-        const user = await User.findOne({ email: email });
+        const user = await User.findOne({ email: email }).populate('roleId', 'roleName');
         if (!user) {
             return res.status(401).json({ message: "User not found please enter correct email" });
         }
