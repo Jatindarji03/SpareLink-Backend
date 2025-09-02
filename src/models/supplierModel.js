@@ -1,19 +1,18 @@
-import mongoose from "mongoose";
-const supplierRequestSchema = new mongoose.Schema({
-    userId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-        required: true,
-    },
-    storeName: {
-        type: String,
-    },
-    status: {
-        type: String,
-        enum: ['pending', 'approved', 'rejected'],
-        default: 'pending'
-    },
-    address: {
+import mongoose  from "mongoose";
+const supplierSchema = new mongoose.Schema({
+     userId:{
+            type:mongoose.Schema.Types.ObjectId,
+            ref:'User',
+            required:true,
+        },
+        storeName:{
+            type:String,
+        },
+        status:{
+            type:String,
+            enum:['pending','approved','rejected'],
+        },
+        address: {
         street: {
             type: String,
             trim: true
@@ -41,6 +40,7 @@ const supplierRequestSchema = new mongoose.Schema({
             }
         }
     }
-}, { timestamps: true });
-const SupplierRequest = mongoose.model("SupplierRequest", supplierRequestSchema);
-export default SupplierRequest;
+},{timestamps:true});
+
+const Supplier = mongoose.model("Supplier",supplierSchema);
+export default Supplier;

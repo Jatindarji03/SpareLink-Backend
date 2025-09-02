@@ -34,30 +34,6 @@ const userSchema = new mongoose.Schema(
                 message:'Phone number must be 10 digits'
             }
         },
-        address:{
-           streetAddress:{
-            type:String,
-            trim:true
-           },
-           city:{
-            type:String,
-            trim:true
-           },
-           state:{
-            type:String,
-            trim:true,
-           },
-           pincode:{
-            type:String,
-            trim:true,
-            validate:{
-                validator:function(v){
-                     return !v || /^\d{6}$/.test(v); // Validate if provided, must be 6 digits
-                },
-                message:'Pincode must be 6 digits'
-            }
-           }
-        }
     },{timestamps:true}
 );
 userSchema.index({email:1});
