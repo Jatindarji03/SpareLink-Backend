@@ -43,3 +43,12 @@ app.use("/api/users", userRoutes);
 
 import supplierRequestRoutes from "./src/routes/supplierRequest.routes.js";
 app.use('/api/supplier-requests', supplierRequestRoutes);
+
+import categoryRoutes from './src/routes/category.routes.js'
+app.use('/api/category',categoryRoutes);
+
+import carBrandRoutes from './src/routes/carBrand.routes.js'
+app.use('/api/car-brand',carBrandRoutes);
+
+import carModelRoutes from './src/routes/carModel.routes.js'
+app.use('/api/car-model',carModelRoutes);
