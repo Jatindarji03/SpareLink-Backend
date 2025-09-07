@@ -21,7 +21,7 @@ const authMiddleware =async (req,res,next)=>{
             let roleName=await Role.findById(req.user.roleId).select('roleName');
             req.user.roleName=roleName.roleName;
         }
-        console.log("Authenticated User:", req.user); // Debugging line
+        // console.log("Authenticated User:", req.user); // Debugging line
         next();
     }catch(error){
         console.log("Authentication Error:", error.message); // Debugging line

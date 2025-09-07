@@ -65,7 +65,7 @@ const createUser = async (req, res) => {
                 storeName:storeName,
                 address:address
             });
-            console.log(newSupplierRequest);
+            // console.log(newSupplierRequest);
             await newSupplierRequest.save();
         }
         const options = {

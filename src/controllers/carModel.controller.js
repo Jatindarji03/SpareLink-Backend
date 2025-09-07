@@ -50,7 +50,7 @@ const getCarModel = async (req, res) => {
     try {
         const carModels = await CarModel.find();
         if (carModels.length == 0) {
-            return res.status(404).json({ mesaage: "There is no car model" });
+            return res.status(200).json({ mesaage: "There is no car model" });
         }
         return res.status(200).json({ mesaage: "Car Model Data Fetched ", data: carModels });
     } catch (error) {
@@ -61,8 +61,12 @@ const getCarModel = async (req, res) => {
 const updateCarModel = async (req, res) => {
     try {
         const { id } = req.params;
-        const { carModel, carBrand } = req.body || {};
+        const { carModel, carBrand } = req.body;
         const image = req.file?.filename;
+        
+        if(!carBrand && !carModel && !image){
+            return res.status(400).json({message:"At least one field is required to update"});
+        }
 
         const existingModel = await CarModel.findById(id);
         if(!existingModel){
