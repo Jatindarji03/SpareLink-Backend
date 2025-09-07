@@ -16,7 +16,7 @@ const generateToken = (user) => {
 
 const createUser = async (req, res) => {
     try {
-        const { name, email, password, role,phoneNumber,address,workShop,storeName } = req.body;
+        const { name, email, password, role, phoneNumber, address, workShop, storeName } = req.body;
         //Check if all fields are present
         if (!name || !email || !password || !role) {
             return res.status(400).json({ message: "All fields are required" });
@@ -36,15 +36,15 @@ const createUser = async (req, res) => {
                 }
             });
         }
-        
+
         const hashedPassword = await bcrypt.hash(password, 10);
         //create a new user
         const newUser = new User({
-            name:name,
-            email:email,
+            name: name,
+            email: email,
             password: hashedPassword,
             roleId: roleData._id,
-            phoneNumber:phoneNumber
+            phoneNumber: phoneNumber
         });
         await newUser.save();
         /*If the role is mechanic, create a mechanic profile in the mechanic
@@ -52,8 +52,8 @@ const createUser = async (req, res) => {
         if (role === 'mechanic') {
             const newMechanic = new Mechanic({
                 userId: newUser._id,
-                workShop:workShop,
-                address:address
+                workShop: workShop,
+                address: address
             });
             await newMechanic.save();
         } else if (role === 'supplier') {
@@ -62,8 +62,8 @@ const createUser = async (req, res) => {
             */
             const newSupplierRequest = new SupplierRequest({
                 userId: newUser._id,
-                storeName:storeName,
-                address:address
+                storeName: storeName,
+                address: address
             });
             // console.log(newSupplierRequest);
             await newSupplierRequest.save();
@@ -94,7 +94,7 @@ const createUser = async (req, res) => {
             We’re excited to make your spare part shopping faster and easier! 🚀
             Best Regards,
             The SpareLink Team`
-            sendMail(email,subject,text);
+            sendMail(email, subject, text);
         } else if (role === 'supplier') {
             const subject = 'Your SpareLink Account is Pending Approval 🕒';
             const text = `Hello ${name},
@@ -107,7 +107,7 @@ const createUser = async (req, res) => {
             We’ll notify you as soon as your account is approved.
             Best Regards,
             The SpareLink Team`;
-            sendMail(email,subject,text);
+            sendMail(email, subject, text);
         }
         await newUser.populate('roleId', 'roleName');
         return res.cookie("authtoken", token, options).status(200).json({
@@ -148,24 +148,24 @@ const loginUser = async (req, res) => {
         if (!isPasswordMatch) {
             return res.status(401).json({ message: "Invalid password please enter correct password" });
         }
-        if(user.roleId.roleName === 'supplier'){
-             const supplierRequest = await SupplierRequest.findOne({ userId: user._id });
-            if(supplierRequest.status === 'pending'){
+        if (user.roleId.roleName === 'supplier') {
+            const supplierRequest = await SupplierRequest.findOne({ userId: user._id });
+            if (supplierRequest.status === 'pending') {
                 return res.status(403).json({ message: "Your supplier account is still pending approval. Please wait for admin approval." });
             }
         }
-       
+
         const token = generateToken(user);
         if (!token) {
             return res.status(500).json({ error: "Failed to generate token" });
         }
         const options = {
             expires: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // 3 days
-            httpOnly: true,
-            sameSite: 'strict',
-            secure: false,
-        }
-        return res.cookie("authtoken", token, options).status(200).json({ data: user, message: "Login successful" });
+            httpOnly: true,   // secure cookie (not accessible in React)
+            sameSite: "None", // ✅ allow cross-origin cookies
+            secure: false,    // set true if HTTPS
+        };
+        return res.cookie("authtoken", token, options).status(200).json({ data: user,authtoken:token, message: "Login successful" });
 
     } catch (error) {
         if (error.name === "ValidationError") {
@@ -184,7 +184,7 @@ const loginUser = async (req, res) => {
 const updateUser = async (req, res) => {
     try {
         const userId = req.params.id;
-        const { name, email, password, phoneNumber, address,shopName } = req.body;
+        const { name, email, password, phoneNumber, address, shopName } = req.body;
         const updatedData = {};
         if (name) updatedData.name = name;
         if (password) {
