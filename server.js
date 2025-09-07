@@ -52,3 +52,6 @@ app.use('/api/car-brand',carBrandRoutes);
 
 import carModelRoutes from './src/routes/carModel.routes.js'
 app.use('/api/car-model',carModelRoutes);
+
+import sparepartRoutes from './src/routes/sparepart.routes.js';
+app.use('/api/spare-part',sparepartRoutes);

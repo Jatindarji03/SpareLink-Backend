@@ -150,11 +150,11 @@ const loginUser = async (req, res) => {
         }
         if (user.roleId.roleName === 'supplier') {
             const supplierRequest = await SupplierRequest.findOne({ userId: user._id });
-            if (supplierRequest.status === 'pending') {
+            if ( supplierRequest!=null && supplierRequest.status === 'pending') {
                 return res.status(403).json({ message: "Your supplier account is still pending approval. Please wait for admin approval." });
             }
         }
-
+       
         const token = generateToken(user);
         if (!token) {
             return res.status(500).json({ error: "Failed to generate token" });
@@ -162,7 +162,7 @@ const loginUser = async (req, res) => {
         const options = {
             expires: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // 3 days
             httpOnly: true,   // secure cookie (not accessible in React)
-            sameSite: "None", // ✅ allow cross-origin cookies
+            sameSite: "strict", // ✅ allow cross-origin cookies
             secure: false,    // set true if HTTPS
         };
         return res.cookie("authtoken", token, options).status(200).json({ data: user,authtoken:token, message: "Login successful" });
@@ -177,7 +177,7 @@ const loginUser = async (req, res) => {
             });
             return res.status(400).json({ message: "Validation Error", errors: validationErrors });
         }
-        return res.status(500).json({ message: "Internal server error" });
+        return res.status(500).json({ message: "Internal server error",error:error });
     }
 }
 
