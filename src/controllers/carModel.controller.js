@@ -100,5 +100,26 @@ const updateCarModel = async (req, res) => {
         return res.status(500).json({ message: "Server Error", error: error });
     }
 };
+const getModelByBrand = async (req, res) => {
+    try {
+        const { brandId } = req.params;
+        // console.log(brandId,"is the brandid");
+        if (!brandId) {
+            const carModels=await CarModel.find();
+            if(carModels.length===0){
+                return res.status(200).json({ message: "No models found", data: [] });
+            }
+            return res.status(200).json({data:carModels, message: "Brand Id is required" });
+        }
+        const carModels = await CarModel.find({ carBrand: brandId });
+        if (carModels.length === 0) {
+            return res.status(200).json({ message: "No models found for this brand", data: [] });
+        }
+        return res.status(200).json({ message: "Models fetched successfully", data: carModels });
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({ message: "Server Error", error: error });
+    }
+};
 
-export { createCarModel, deleteCarModel, getCarModel, updateCarModel };
+export { createCarModel, deleteCarModel, getCarModel, updateCarModel ,getModelByBrand};

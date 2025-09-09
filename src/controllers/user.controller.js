@@ -150,11 +150,11 @@ const loginUser = async (req, res) => {
         }
         if (user.roleId.roleName === 'supplier') {
             const supplierRequest = await SupplierRequest.findOne({ userId: user._id });
-            if ( supplierRequest!=null && supplierRequest.status === 'pending') {
+            if (supplierRequest.status === 'pending') {
                 return res.status(403).json({ message: "Your supplier account is still pending approval. Please wait for admin approval." });
             }
         }
-       
+
         const token = generateToken(user);
         if (!token) {
             return res.status(500).json({ error: "Failed to generate token" });
@@ -162,7 +162,7 @@ const loginUser = async (req, res) => {
         const options = {
             expires: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // 3 days
             httpOnly: true,   // secure cookie (not accessible in React)
-            sameSite: "strict", // ✅ allow cross-origin cookies
+            sameSite: "None", // ✅ allow cross-origin cookies
             secure: false,    // set true if HTTPS
         };
         return res.cookie("authtoken", token, options).status(200).json({ data: user,authtoken:token, message: "Login successful" });
@@ -177,7 +177,7 @@ const loginUser = async (req, res) => {
             });
             return res.status(400).json({ message: "Validation Error", errors: validationErrors });
         }
-        return res.status(500).json({ message: "Internal server error",error:error });
+        return res.status(500).json({ message: "Internal server error" });
     }
 }
 
@@ -228,4 +228,16 @@ const updateUser = async (req, res) => {
         return res.status(500).json({ message: "Internal server error" });
     }
 }
-export { createUser, loginUser, updateUser };
+const viewProfile = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const user = await User.findById(userId).populate('roleId', 'roleName');
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+        return res.status(200).json({ data: user, message: "User profile fetched successfully" });
+    } catch (error) {
+        return res.status(500).json({ message: "Internal server error" });
+    }
+}
+export { createUser, loginUser, updateUser ,viewProfile};

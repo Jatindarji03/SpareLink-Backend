@@ -3,8 +3,10 @@ import SupplierSparePart from "../models/supplierSparePartModel.js";
 
 const addSparePart = async (req, res) => {
     try {
+
         const { supplierId, name, description, categoryId, specifications, price, brandId, modelId, variant } = req.body;
         const image = req.file?.filename;
+        console.log(req.body);
 
         if (!image) {
             return res.status(400).json({ message: "Image is required" });
@@ -49,6 +51,7 @@ const addSparePart = async (req, res) => {
 const getSparePartBySupplierId = async (req, res) => {
     try {
         const id = req.params.id;
+        console.log(id);
         if (!id) {
             return res.status(400).json({ message: "Supplier Id Is required" });
         }
@@ -57,6 +60,8 @@ const getSparePartBySupplierId = async (req, res) => {
             .populate('brandId', 'name') // Get brand name
             .populate('modelId', 'name') // Get model name
             .lean();
+        const price= await SupplierSparePart.find({ supplierId: id ,sparePartId: spareParts}).select('sparePartId price').lean();
+        console.log(price);    
         if (spareParts.length == 0) {
             return res.status(404).json({ message: "There is no product" });
         }
@@ -128,7 +133,9 @@ const updateSparePart = async (req, res) => {
         const id = req.params.id;
         const image = req.file?.filename;
         const updatedData = {};
+        console.log(req.body);
         const {  name, description, categoryId, specifications, brandId, modelId, variant } = req.body;
+        
 
         const existingSparePart = await SparePart.findById(id);
         if(!existingSparePart){
