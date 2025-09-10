@@ -1,3 +1,4 @@
+import CarBrand from "../models/CarBrand.Models.js";
 import CarModel from "../models/carModel.Models.js";
 
 const createCarModel = async (req, res) => {
@@ -103,7 +104,7 @@ const updateCarModel = async (req, res) => {
 const getModelByBrand = async (req, res) => {
     try {
         const { brandId } = req.params;
-        // console.log(brandId,"is the brandid");
+       
         if (!brandId) {
             const carModels=await CarModel.find();
             if(carModels.length===0){
@@ -121,5 +122,39 @@ const getModelByBrand = async (req, res) => {
         return res.status(500).json({ message: "Server Error", error: error });
     }
 };
+const getCarModelByName = async (req, res) => {
+  try {
+    const { name } = req.params;
+    console.log(name, "is the brand name");
 
-export { createCarModel, deleteCarModel, getCarModel, updateCarModel ,getModelByBrand};
+    if (!name) {
+      return res.status(400).json({ message: "Model name is required" });
+    }
+
+    // Check if brand exists
+    const brandExists = await CarBrand.findOne({ name });
+    if (!brandExists) {
+      return res.status(404).json({ message: "Brand not found" });
+    }
+
+    // Now find the car model(s) linked to this brand
+    const carModel = await CarModel.find({ carBrand: brandExists._id })
+      .populate("carBrand", "name logo"); 
+
+    if (!carModel) {
+      return res.status(404).json({ message: "Model not found" });
+    }
+
+    return res.status(200).json({
+      message: "Model fetched successfully",
+      data: carModel,
+    });
+  } catch (error) {
+    console.error("Error in getCarModelByName:", error);
+    return res.status(500).json({ message: "Server Error", error });
+  }
+};
+
+
+
+export { createCarModel, deleteCarModel, getCarModel, updateCarModel ,getModelByBrand,getCarModelByName};
