@@ -144,10 +144,12 @@ const loginUser = async (req, res) => {
         if (!user) {
             return res.status(401).json({ message: "User not found please enter correct email" });
         }
+        
         const isPasswordMatch = await bcrypt.compare(password, user.password);
         if (!isPasswordMatch) {
             return res.status(401).json({ message: "Invalid password please enter correct password" });
         }
+        
         if (user.roleId.roleName === 'supplier') {
             const supplierRequest = await SupplierRequest.findOne({ userId: user._id });
             if (supplierRequest.status === 'pending') {
