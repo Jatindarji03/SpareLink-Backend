@@ -1,6 +1,6 @@
 import { Router } from "express";
 import authMiddleware from "../middleware/authMiddleware.js";
-import checkPermission from "../middleware/checkPermission.js";
+
 import { getSupplierRequests,supplierRequestApprovel } from "../controllers/supplierRequest.controller.js";
 const router = Router();
 

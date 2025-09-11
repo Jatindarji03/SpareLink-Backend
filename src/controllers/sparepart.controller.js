@@ -59,7 +59,7 @@ const getSparePartBySupplierId = async (req, res) => {
     const spareParts = await SparePart.find({ supplierId })
       .populate("categoryId", "name")
       .populate("brandId", "name")
-      .populate("modelId", "name")
+      .populate("modelId", "carModel")
       .lean();
 
     if (!spareParts.length) {
