@@ -1,13 +1,16 @@
 import SupplierRequest from "../models/supplierRequestModel.js";
 import sendMail from "../utils/sendMail.js";
 import Supplier from "../models/supplierModel.js";
+import User from '../models/userModel.js'
 //Get Supplier Requests Whose Status is Pending 
 const getSupplierRequests = async (req,res)=>{
     try{
         const supplierRequests = await SupplierRequest.find().populate('userId','name email');
+        
         if(supplierRequests.length === 0){
             return res.status(404).json({message:"No supplier requests found"});
         }
+        console.log(supplierRequests)
         return res.status(200).json({data:supplierRequests, message:"Supplier requests fetched successfully"});
     }catch(error){
         return res.status(500).json({ message: "Internal server error" });
@@ -48,6 +51,21 @@ const supplierRequestApprovel = async (req,res)=>{
                 status:'approved'
             });
             await newSupplier.save();
+            await updatedRequest.deleteOne();
+        }else if(status === 'rejected'){
+            const subject = 'Your SpareLink Supplier Request Has Been Rejected';
+            const message = `Hello,
+            We appreciate your interest in becoming a supplier on SpareLink.  
+            After reviewing your application, we regret to inform you that your supplier request has not been approved at this time.
+            Possible reasons may include:
+            1. Incomplete or inaccurate information provided  
+            2. Failure to meet our supplier requirements  
+            3. Other eligibility concerns
+            We value your interest and encourage you to try again in the future.
+            Best Regards,  
+            The SpareLink Team`;
+            sendMail(updatedRequest.userId.email,subject,message);
+            await User.findByIdAndDelete(updatedRequest.userId);
             await updatedRequest.deleteOne();
         }
         return res.status(200).json({message:"Supplier request status updated successfully"});
