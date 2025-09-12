@@ -1,4 +1,5 @@
 import SparePart from "../models/sparepart.Models.js";
+import Supplier from "../models/supplierModel.js";
 import SupplierSparePart from "../models/supplierSparePartModel.js";
 
 // ✅ Add Spare Part
@@ -121,13 +122,14 @@ const getSparePartById = async (req, res) => {
     if (!id) {
       return res.status(400).json({ message: "Spare Part Id is required" });
     }
+    
 
     const sparePart = await SparePart.findById(id)
       .populate("categoryId", "name")
       .populate("brandId", "name")
       .populate("modelId", "carModel")
       .lean();
-
+    // console.log(sparePart);
     if (!sparePart) {
       return res.status(404).json({ message: "Unable to fetch spare part" });
     }
@@ -210,6 +212,49 @@ const deleteSparePart = async (req, res) => {
     return res.status(500).json({ message: "Internal server error" });
   }
 };
+const getSuppliersofsparpart = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({ message: "No product id found" });
+    }
+
+    // Step 1: Find the spare part by id
+    const sparepart = await SparePart.findById(id);
+    if (!sparepart) {
+      return res.status(404).json({ message: "No product found" });
+    }
+
+    // Step 2: Find all spare parts with the same name
+    const sparePartsWithSameName = await SparePart.find({ name: sparepart.name });
+
+    // Step 3: Extract supplierIds
+    const supplierIds = sparePartsWithSameName
+      .map((sp) => sp.supplierId)
+      .filter(Boolean);
+    console.log("dd");
+    // Step 4: Fetch suppliers directly with $in and populate
+    let suppliers = await Supplier.find({ userId: { $in: supplierIds } })
+      .populate("userId", "name email phoneNumber ")
+    ;
+    console.log(suppliers);
+    // Remove duplicates
+    suppliers = suppliers.filter(
+      (s, i, arr) => arr.findIndex((x) => x._id.toString() === s._id.toString()) === i
+    );
+
+    return res.status(200).json({
+      message: "Suppliers fetched successfully",
+      data: suppliers
+    });
+
+  } catch (error) {
+    console.error("Error fetching suppliers by sparepart id:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
 
 export {
   addSparePart,
@@ -217,5 +262,6 @@ export {
   updateSparePart,
   deleteSparePart,
   getSparePart,
-  getSparePartById
+  getSparePartById,
+  getSuppliersofsparpart
 };

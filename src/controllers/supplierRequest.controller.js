@@ -47,7 +47,8 @@ const supplierRequestApprovel = async (req,res)=>{
 
             const newSupplier = new Supplier({
                 userId:updatedRequest.userId._id,
-                shopName:updatedRequest.shopName,
+                shopName:updatedRequest.storeName,
+                address:updatedRequest.address,
                 status:'approved'
             });
             await newSupplier.save();

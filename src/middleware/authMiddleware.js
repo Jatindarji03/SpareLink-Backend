@@ -17,7 +17,7 @@ const authMiddleware =async (req,res,next)=>{
     try{
         const user=verifyToken(token);
         req.user=user;
-        console.log(req.user);
+        // console.log(req.user);
         if(req.user.roleId){
             let roleName=await Role.findById(req.user.roleId).select('roleName');
             req.user.roleName=roleName.roleName;

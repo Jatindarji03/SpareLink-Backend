@@ -5,7 +5,8 @@ import SupplierRequest from "../models/supplierRequestModel.js";
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken';
 import sendMail from "../utils/sendMail.js";
-
+import mongoose from "mongoose";
+import Supplier from "../models/supplierModel.js";
 const generateToken = (user) => {
     const secret = process.env.JWT_SECRET;
     return jwt.sign(
@@ -17,9 +18,20 @@ const generateToken = (user) => {
 const createUser = async (req, res) => {
     try {
         const { name, email, password, role, phoneNumber, address, workShop, storeName } = req.body;
+        console.log(req.body,"req.body");
         //Check if all fields are present
         if (!name || !email || !password || !role) {
             return res.status(400).json({ message: "All fields are required" });
+        }
+        if(role.toLowerCase()=='supplier'){
+            if(!storeName){
+                return res.status(400).json({message:"Store name not found..."});
+            }
+        }
+        if(role.toLowerCase()=='mechanic'){
+            if(!workShop){
+                return res.status(400).json({message:"workShop name not found..."});
+            }
         }
         //check if user already exists
         const existingUser = await User.findOne({ email });
@@ -144,17 +156,17 @@ const loginUser = async (req, res) => {
         if (!user) {
             return res.status(401).json({ message: "User not found please enter correct email" });
         }
-        
+
         const isPasswordMatch = await bcrypt.compare(password, user.password);
         if (!isPasswordMatch) {
             return res.status(401).json({ message: "Invalid password please enter correct password" });
         }
-                    
 
-        
+
+
         if (user.roleId.roleName === 'supplier') {
             const supplierRequest = await SupplierRequest.findOne({ userId: user._id });
-            if (supplierRequest &&supplierRequest.status === 'pending') {
+            if (supplierRequest && supplierRequest.status === 'pending') {
                 return res.status(403).json({ message: "Your supplier account is still pending approval. Please wait for admin approval." });
             }
         }
@@ -170,7 +182,7 @@ const loginUser = async (req, res) => {
             sameSite: "strict", // ✅ allow cross-origin cookies
             secure: false,    // set true if HTTPS
         };
-        return res.cookie("authtoken", token, options).status(200).json({ data: user,authtoken:token, message: "Login successful" });
+        return res.cookie("authtoken", token, options).status(200).json({ data: user, authtoken: token, message: "Login successful" });
 
     } catch (error) {
         if (error.name === "ValidationError") {
@@ -187,62 +199,202 @@ const loginUser = async (req, res) => {
 }
 
 const updateUser = async (req, res) => {
-    try {
-        const userId = req.params.id;
-        const { name, email, password, phoneNumber, address, shopName } = req.body;
-        const updatedData = {};
-        if (name) updatedData.name = name;
-        if (password) {
-            if (password.length < 6) {
-                return res.status(400).json({ message: "Password must be at least 6 characters long" });
-            }
-            const hashedPassword = await bcrypt.hash(password, 10);
-            updatedData.password = hashedPassword;
-        }
-        if (phoneNumber) updatedData.phoneNumber = phoneNumber;
+  try {
+    const userId = req.params.id;
+    const {
+      name,
+      email,
+      password,
+      phoneNumber,
+      address,
+      workShop,
+      storeName,
+    } = req.body;
 
-        //checl if email not already exists
-        if (email) {
-            const existingUser = await User.findOne({ email: email });
-            if (existingUser) {
-                return res.status(409).json({ message: "Email already exists" });
-            }
-        }
+    // Build user update object
+    const updatedUserData = {};
+    if (name) updatedUserData.name = name;
+    if (phoneNumber) updatedUserData.phoneNumber = phoneNumber;
+
+    // Password validation & hashing
+    if (password) {
+      if (password.length < 6) {
+        return res
+          .status(400)
+          .json({ message: "Password must be at least 6 characters long" });
+      }
+      updatedUserData.password = await bcrypt.hash(password, 10);
+    }
+
+    // Email validation (unique)
+    if (email) {
+      const existingUser = await User.findOne({ email, _id: { $ne: userId } });
+      if (existingUser) {
+        return res.status(409).json({ message: "Email already exists" });
+      }
+      updatedUserData.email = email;
+    }
+
+    // Update user document
+    let updatedUser = await User.findByIdAndUpdate(userId, updatedUserData, {
+      new: true,
+      runValidators: true,
+    }).populate("roleId"); // populate roleId
+
+    if (!updatedUser) return res.status(404).json({ message: "User not found" });
+
+    // Safely get roleName
+    const roleName = updatedUser?.roleId?.roleName?.toLowerCase();
+
+    // Update role-specific info
+    if (roleName === "mechanic") {
+      let mechanic = await Mechanic.findOne({ userId });
+      if (mechanic) {
+        if (workShop) mechanic.workShop = workShop;
         if (address) {
-            updatedData.address = {};
-            if (address.streetAddress) updatedData.address.streetAddress = address.streetAddress;
-            if (address.city) updatedData.address.city = address.city;
-            if (address.state) updatedData.address.state = address.state;
-            if (address.pincode) updatedData.address.pincode = address.pincode;
+          mechanic.address = {
+            ...mechanic.address,
+            street: address.street || mechanic.address.street,
+            city: address.city || mechanic.address.city,
+            state: address.state || mechanic.address.state,
+            country: address.country || mechanic.address.country,
+            pincode: address.pincode || mechanic.address.pincode,
+          };
         }
-        const updatedUser = await User.findByIdAndUpdate(userId, updatedData, { new: true, runValidators: true });
-        if (!updatedUser) {
-            return res.status(404).json({ message: "User not found" });
-        }
-        return res.status(200).json({ data: updatedUser, message: "User updated successfully" });
+        await mechanic.save();
+      }
+    }
 
-    } catch (error) {
-        if (error.name === "ValidationError") {
-            const validationErrors = {};
-            // Extract all validation error messages
-            Object.keys(error.errors).forEach((key) => {
-                validationErrors[key] = error.errors[key].message;
-            });
-            return res.status(400).json({ message: "Validation Error", errors: validationErrors });
+    if (roleName === "supplier") {
+      let supplier = await Supplier.findOne({ userId });
+      if (supplier) {
+        if (storeName) supplier.storeName = storeName;
+        if (address) {
+          supplier.address = {
+            ...supplier.address,
+            street: address.street || supplier.address.street,
+            city: address.city || supplier.address.city,
+            state: address.state || supplier.address.state,
+            country: address.country || supplier.address.country,
+            pincode: address.pincode || supplier.address.pincode,
+          };
         }
-        return res.status(500).json({ message: "Internal server error" });
+        await supplier.save();
+      }
     }
-}
+
+    // Fetch updated role-specific details for response
+    const mechanicDetails =
+      roleName === "mechanic" ? await Mechanic.findOne({ userId }).lean() : null;
+    const supplierDetails =
+      roleName === "supplier" ? await Supplier.findOne({ userId }).lean() : null;
+
+    updatedUser = updatedUser.toObject();
+
+    return res.status(200).json({
+      message: "Profile updated successfully",
+      data: { ...updatedUser, mechanicDetails, supplierDetails },
+    });
+  } catch (error) {
+    console.error("Update failed:", error);
+    if (error.name === "ValidationError") {
+      const errors = {};
+      Object.keys(error.errors).forEach(
+        (key) => (errors[key] = error.errors[key].message)
+      );
+      return res.status(400).json({ message: "Validation Error", errors });
+    }
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
 const viewProfile = async (req, res) => {
-    try {
-        const userId = req.user.id;
-        const user = await User.findById(userId).populate('roleId', 'roleName');
-        if (!user) {
-            return res.status(404).json({ message: "User not found" });
+  try {
+    const userId = req.user.id;
+    const role = req.user.roleId.roleName;
+    const objectId = new mongoose.Types.ObjectId(userId);
+    console.log(role);
+    
+
+    const pipeline = [
+      { $match: { _id: objectId } },
+
+      // Join Role
+      {
+        $lookup: {
+          from: "roles",
+          localField: "roleId",
+          foreignField: "_id",
+          as: "role"
         }
-        return res.status(200).json({ data: user, message: "User profile fetched successfully" });
-    } catch (error) {
-        return res.status(500).json({ message: "Internal server error" });
+      },
+      { $unwind: { path: "$role", preserveNullAndEmptyArrays: true } },
+
+      // Conditionally join based on role
+      ...(role.toLowerCase() === "mechanic"
+        ? [
+            {
+              $lookup: {
+                from: "mechanics",
+                localField: "_id",
+                foreignField: "userId",
+                as: "mechanicDetails"
+              }
+            },
+            {
+              $unwind: {
+                path: "$mechanicDetails",
+                preserveNullAndEmptyArrays: true
+              }
+            }
+          ]
+        : []),
+
+      ...(role.toLowerCase() === "supplier"
+        ? [
+            {
+              $lookup: {
+                from: "suppliers", // ✅ FIXED
+                localField: "_id",
+                foreignField: "userId",
+                as: "supplierDetails"
+              }
+            },
+            {
+              $unwind: {
+                path: "$supplierDetails",
+                preserveNullAndEmptyArrays: true
+              }
+            }
+          ]
+        : []),
+
+      {
+        $project: {
+          name: 1,
+          email: 1,
+          phoneNumber: 1,
+          createdAt: 1,
+          role: "$role.roleName",
+          mechanicDetails: "$mechanicDetails",
+          supplierDetails: "$supplierDetails"
+        }
+      }
+    ];
+
+    const result = await User.aggregate(pipeline);
+
+    if (!result || result.length === 0) {
+      return res.status(404).json({ message: "User not found" });
     }
-}
-export { createUser, loginUser, updateUser ,viewProfile};
+
+    return res.status(200).json({
+      data: result[0],
+      message: "User profile fetched successfully"
+    });
+  } catch (error) {
+    console.error("Error in viewProfile:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export { createUser, loginUser, updateUser, viewProfile };
