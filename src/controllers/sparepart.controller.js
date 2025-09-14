@@ -122,7 +122,7 @@ const getSparePartById = async (req, res) => {
     if (!id) {
       return res.status(400).json({ message: "Spare Part Id is required" });
     }
-    
+
 
     const sparePart = await SparePart.findById(id)
       .populate("categoryId", "name")
@@ -237,7 +237,7 @@ const getSuppliersofsparpart = async (req, res) => {
     // Step 4: Fetch suppliers directly with $in and populate
     let suppliers = await Supplier.find({ userId: { $in: supplierIds } })
       .populate("userId", "name email phoneNumber ")
-    ;
+      ;
     console.log(suppliers);
     // Remove duplicates
     suppliers = suppliers.filter(
@@ -255,6 +255,26 @@ const getSuppliersofsparpart = async (req, res) => {
   }
 };
 
+const searchBySparePart = async (req, res) => {
+  try {
+    const name = req.params.name;
+    if (!name) {
+      return res.status(400).json({ message: "Spare Part Name Is Required" })
+    }
+    const spareParts = await SparePart.find({
+      name: { $regex: name, $options: 'i' }
+    });
+
+    if (spareParts.length === 0) {
+      return res.status(404).json({ message: "Spare Part Not Found " });
+    }
+    return res.status(200).json({ message: "Searched Product", data: spareParts });
+  } catch (error) {
+    console.log("error : ", error);
+    return res.status(500).json({ message: "Internal Server Error ", error: error.message });
+  }
+}
+
 
 export {
   addSparePart,
@@ -263,5 +283,6 @@ export {
   deleteSparePart,
   getSparePart,
   getSparePartById,
-  getSuppliersofsparpart
+  getSuppliersofsparpart,
+  searchBySparePart
 };
