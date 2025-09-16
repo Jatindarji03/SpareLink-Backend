@@ -55,3 +55,6 @@ app.use('/api/car-model',carModelRoutes);
 
 import sparepartRoutes from './src/routes/sparepart.routes.js';
 app.use('/api/spare-part',sparepartRoutes);
+
+import quotationRoutes from './src/routes/quotation.routes.js';
+app.use('/api/quotation',quotationRoutes);
