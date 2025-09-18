@@ -3,30 +3,61 @@ import Quotation from "../models/quotationModel.js";
 import Mechanic from "../models/mechanicModel.js";
 import User from "../models/userModel.js";
 
+import {io, connectedUsers } from "../Socket/socket.js";
 //This Method will Called When Mechanic to request a quotation
 const createQuotation = async (req, res) => {
-    try {
-        const { mechanicId, supplierId, product } = req.body;
-        if (!mechanicId || !supplierId || !product) {
-            return res.status(400).json({ message: "MechanicID , SupplierID And Product Details Required" });
-        }
-        const newQuotation = new Quotation({
-            mechanicId: mechanicId,
-            supplierId: supplierId,
-            product: product,
-        });
-        await newQuotation.save();
-        return res.status(200).json({ message: "Quotation created", data: newQuotation });
-    } catch (error) {
-        console.log('error', error);
-        return res.status(500).json({ message: "Internal Server Error ", error: error.message });
+  try {
+    const { mechanicId, supplierId, product } = req.body;
+
+    if (!mechanicId || !supplierId || !product) {
+      return res
+        .status(400)
+        .json({ message: "MechanicID, SupplierID and Product details required" });
     }
+
+    // Save quotation
+    const newQuotation = new Quotation({
+      mechanicId,
+      supplierId,
+      product,
+    });
+
+    await newQuotation.save();
+    const quotations = await Quotation.find({_id:newQuotation._id})
+            .populate('product.sparePartId', 'name ')
+            .populate('mechanicId','name email');
+    
+    
+    // 🔹 Send to supplier via socket if connected
+    const targetSocketId = connectedUsers.get(supplierId);
+
+    if (targetSocketId) {
+      io.to(targetSocketId).emit("new-quotation-request", quotations);
+    //   console.log(
+    //     `Quotation sent to supplier ${supplierId} via socket ${targetSocketId}`
+    //   );
+    } else {
+      console.log(`Supplier ${supplierId} is not connected.`);
+    }
+
+    return res
+      .status(200)
+      .json({ message: "Quotation created", data: newQuotation });
+  } catch (error) {
+    console.log("error", error);
+    return res
+      .status(500)
+      .json({ message: "Internal Server Error", error: error.message });
+  }
 };
+
 //This Method Is Called In Supplier Side to See there Quotation 
 const getQuotationsBySupplier = async (req, res) => {
     try {
         const id = req.params.id;
+        console.log(id);
         if (!id) {
+
             return res.status(400).json({ message: "Supplier Id is required" });
         }
 

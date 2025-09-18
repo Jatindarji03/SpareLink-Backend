@@ -2,7 +2,7 @@ import SparePart from "../models/sparepart.Models.js";
 import Supplier from "../models/supplierModel.js";
 import SupplierSparePart from "../models/supplierSparePartModel.js";
 
-// ✅ Add Spare Part
+//  Add Spare Part
 const addSparePart = async (req, res) => {
   try {
     const { supplierId, name, description, categoryId, specifications, price, brandId, modelId, variant } = req.body;
@@ -48,7 +48,7 @@ const addSparePart = async (req, res) => {
   }
 };
 
-// ✅ Get Spare Parts by Supplier
+// Get Spare Parts by Supplier
 const getSparePartBySupplierId = async (req, res) => {
   try {
     const supplierId = req.params.id;
@@ -86,7 +86,7 @@ const getSparePartBySupplierId = async (req, res) => {
   }
 };
 
-// ✅ Get All Spare Parts
+//  Get All Spare Parts
 const getSparePart = async (req, res) => {
   try {
     const spareParts = await SparePart.find()
@@ -115,7 +115,7 @@ const getSparePart = async (req, res) => {
   }
 };
 
-// ✅ Get Spare Part by Id
+//Get Spare Part by Id
 const getSparePartById = async (req, res) => {
   try {
     const id = req.params.id;
@@ -145,7 +145,7 @@ const getSparePartById = async (req, res) => {
   }
 };
 
-// ✅ Update Spare Part
+// Update Spare Part
 const updateSparePart = async (req, res) => {
   try {
     const id = req.params.id;
@@ -190,7 +190,7 @@ const updateSparePart = async (req, res) => {
   }
 };
 
-// ✅ Delete Spare Part
+// Delete Spare Part
 const deleteSparePart = async (req, res) => {
   try {
     const id = req.params.id;
@@ -233,12 +233,12 @@ const getSuppliersofsparpart = async (req, res) => {
     const supplierIds = sparePartsWithSameName
       .map((sp) => sp.supplierId)
       .filter(Boolean);
-    console.log("dd");
+    // console.log("dd");
     // Step 4: Fetch suppliers directly with $in and populate
     let suppliers = await Supplier.find({ userId: { $in: supplierIds } })
       .populate("userId", "name email phoneNumber ")
       ;
-    console.log(suppliers);
+    // console.log(suppliers);
     // Remove duplicates
     suppliers = suppliers.filter(
       (s, i, arr) => arr.findIndex((x) => x._id.toString() === s._id.toString()) === i
