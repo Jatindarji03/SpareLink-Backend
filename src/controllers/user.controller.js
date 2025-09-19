@@ -421,7 +421,7 @@ const forgotPassword = async (req, res) => {
       Best Regards,  
       The SpareLink Team`
     await newOtp.save();
-    //await sendMail(email,subject,text);
+    await sendMail(email,subject,text);
     return res.status(200).json({ message: 'OTP Send', data: otp });
   } catch (error) {
     console.log(`Error ${error.message}`);
@@ -460,10 +460,7 @@ const resetPassword = async (req, res) => {
   try {
     const { resetToken, newPassword } = req.body;
     // Debug: Check if token is received
-    console.log('Received token:', resetToken);
-    console.log('JWT_SECRET exists:', !!process.env.JWT_SECRET);
-    const tokenValidation = isValidResetToken(resetToken);
-    console.log('Token validation result:', tokenValidation);
+    const tokenValidation = isValidResetToken(resetToken)
     if (!tokenValidation.valid) {
       return res.status(401).json({ message: tokenValidation.message });
     }
