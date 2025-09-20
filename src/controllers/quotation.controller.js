@@ -114,6 +114,44 @@ const rejectQuotation = async (req, res) => {
         return res.status(500).json({ message: "Internal Server Error ", error: error.message });
     }
 }
+//  Get Quotations of Mechanic
+// ✅ Get Quotations of Mechanic
+const getquotationofmechanic = async (req, res) => {
+  try {
+    const userId = req.user.id; // assuming auth middleware adds req.user
+   
+    if (!userId) {
+      return res.status(404).json({ message: "User ID not found" });
+    }
+
+    const quotations = await Quotation.find({ mechanicId: userId })
+      .populate("mechanicId", "name email phoneNumber") // mechanic details
+      .populate({
+        path: "supplierId",  // Supplier reference
+        select: "storeName status address userId",
+        populate: {
+          path: "userId",     // populate User inside Supplier
+          select: "name email phoneNumber"
+        }
+      })
+      .populate("product.sparePartId", "name category price"); // spare part details
+      console.log(quotations);
+
+    if (!quotations || quotations.length === 0) {
+      return res.status(404).json({ message: "No quotations found" });
+    }
+
+    return res.status(200).json({
+      data: quotations,
+      message: "Successfully fetched quotations",
+    });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
 
 
-export { createQuotation, getQuotationsBySupplier, approveQuotation, rejectQuotation };
+
+
+
+export { createQuotation, getQuotationsBySupplier, approveQuotation, rejectQuotation,getquotationofmechanic };
