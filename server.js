@@ -58,3 +58,6 @@ app.use('/api/spare-part',sparepartRoutes);
 
 import quotationRoutes from './src/routes/quotation.routes.js';
 app.use('/api/quotation',quotationRoutes);
+
+import orderRoutes from './src/routes/order.routes.js'
+app.use('/api/order',orderRoutes);
