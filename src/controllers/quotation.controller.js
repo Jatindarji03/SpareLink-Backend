@@ -2,7 +2,7 @@ import { populate } from "dotenv";
 import Quotation from "../models/quotationModel.js";
 import Mechanic from "../models/mechanicModel.js";
 import User from "../models/userModel.js";
-
+import SparePart from "../models/sparepart.Models.js";
 import { io, connectedUsers } from "../Socket/socket.js";
 //This Method will Called When Mechanic to request a quotation
 const createQuotation = async (req, res) => {
@@ -10,58 +10,73 @@ const createQuotation = async (req, res) => {
     const { mechanicId, supplierId, product } = req.body;
 
     if (!mechanicId || !supplierId || !product) {
-      return res
-        .status(400)
-        .json({ message: "MechanicID, SupplierID and Product details required" });
+      return res.status(400).json({
+        message: "MechanicID, SupplierID and Product details required",
+      });
     }
 
-    // Save quotation
+    // ✅ Find one spare part
+    const prod = await SparePart.findOne({
+      supplierId,
+      name: product.name,
+    });
+
+    if (!prod) {
+      return res.status(404).json({ message: "Spare Part Not Found" });
+    }
+
+    const productwithqty = {
+      sparePartId: prod._id,
+      quantity: product.quantity,
+    };
+
+    // ✅ Save quotation
     const newQuotation = new Quotation({
       mechanicId,
       supplierId,
-      product,
+      product:productwithqty, // make sure schema matches
     });
 
     await newQuotation.save();
-    const quotations = await Quotation.find({ _id: newQuotation._id })
-      .populate('product.sparePartId', 'name ')
-      .populate('mechanicId', 'name email');
 
+    // ✅ Populate for response & socket
+    const quotations = await Quotation.findById(newQuotation._id)
+      .populate("product.sparePartId", "name")
+      .populate("mechanicId", "name email");
 
     // 🔹 Send to supplier via socket if connected
     const targetSocketId = connectedUsers.get(supplierId);
-
     if (targetSocketId) {
       io.to(targetSocketId).emit("new-quotation-request", quotations);
-      //   console.log(
-      //     `Quotation sent to supplier ${supplierId} via socket ${targetSocketId}`
-      //   );
     } else {
       console.log(`Supplier ${supplierId} is not connected.`);
     }
 
-    return res
-      .status(200)
-      .json({ message: "Quotation created", data: newQuotation });
+    return res.status(200).json({
+      message: "Quotation created",
+      data: quotations,
+    });
   } catch (error) {
     console.log("error", error);
-    return res
-      .status(500)
-      .json({ message: "Internal Server Error", error: error.message });
+    return res.status(500).json({
+      message: "Internal Server Error",
+      error: error.message,
+    });
   }
 };
+
 
 //This Method Is Called In Supplier Side to See there Quotation 
 const getQuotationsBySupplier = async (req, res) => {
   try {
     const id = req.params.id;
-    console.log(id);
+    // console.log(id);
     if (!id) {
 
       return res.status(400).json({ message: "Supplier Id is required" });
     }
 
-    const quotations = await Quotation.find({ supplierId: id, status: 'pending' })
+    const quotations = await Quotation.find({ supplierId: id })
       .populate('product.sparePartId', 'name ')
       .populate('mechanicId', 'name email')
       .sort({ createdAt: -1 });
@@ -136,7 +151,7 @@ const getQuotationByMechanic = async (req, res) => {
       return res.status(404).json({ message: "User ID not found" });
     }
 
-    const quotations = await Quotation.find({ mechanicId: userId,status:'approved' })
+    const quotations = await Quotation.find({ mechanicId: userId, status: 'approved' })
       .populate("mechanicId", "name email phoneNumber") // mechanic details
       .populate('supplierId', 'name email phoneNumber')
       .populate("product.sparePartId", "name category price"); // spare part details
