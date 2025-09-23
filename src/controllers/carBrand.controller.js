@@ -1,4 +1,4 @@
-import CarBrand from "../models/CarBrand.Models.js";
+import CarBrand from "../models/carBrand.Models.js";
 
 const createBrand = async (req, res) => {
     try {
