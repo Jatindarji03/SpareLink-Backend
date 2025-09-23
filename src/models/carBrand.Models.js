@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+
 const CarBrandSchema=new mongoose.Schema({
     name:{
         type:String,
