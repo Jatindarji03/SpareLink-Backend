@@ -11,7 +11,7 @@ app.use(cookieParser());
 app.use(express.static("public/uploads"));
 
 
-const allowedOrigins = ["http://localhost:5173", "http://localhost:5174"];
+const allowedOrigins = ["http://localhost:5173", "http://localhost:5174","https://sparelink.netlify.app"];
 
 app.use(cors({
   origin: function (origin, callback) {
