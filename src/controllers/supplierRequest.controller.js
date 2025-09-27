@@ -10,7 +10,6 @@ const getSupplierRequests = async (req,res)=>{
         if(supplierRequests.length === 0){
             return res.status(404).json({message:"No supplier requests found"});
         }
-        console.log(supplierRequests)
         return res.status(200).json({data:supplierRequests, message:"Supplier requests fetched successfully"});
     }catch(error){
         return res.status(500).json({ message: "Internal server error" });
@@ -22,7 +21,6 @@ const supplierRequestApprovel = async (req,res)=>{
     try{
         const {id} = req.params;
         const {status} = req.body;
-        console.log(id,status);
         const validStatuses = ['approved','rejected'];
         if(!validStatuses.includes(status)){
             return res.status(400).json({message:"Invalid status value"});
@@ -76,4 +74,34 @@ const supplierRequestApprovel = async (req,res)=>{
     }
 };
 
-export {getSupplierRequests,supplierRequestApprovel};
+//Get Approved Supplier to show mechanic
+const getApprovedSupplier = async (req,res)=>{
+    try{
+        const suppliers = await Supplier.find().populate('userId','name email');
+        if(suppliers.length===0){
+            return res.status(404).json({message:"No supplier requests found"});
+        }
+        return res.status(200).json({message:'Supplier Fetched',data:suppliers});
+    }catch(error){
+        console.log(`error ${error}`);
+        return res.status(500).json({message:'Internal server error ',error:error});
+    }
+}
+
+//Get Supplier Details From its id
+const getSupplierById = async (req,res)=>{
+    try{
+        const id = req.params.id;
+        if(!id){
+            return res.status(400).json({message:'Id is required'})
+        }
+        const supplier = await Supplier.findById(id).populate('userId','name email');
+        if(!supplier){
+            return res.status(404).json({message:'Supplier Not Found',data:supplier});
+        }
+        return res.status(200).json({message:'Supplier Data Feteched',data:supplier});
+    }catch(error){
+        return res.status(500).json({message:'Internal Server error',error:error});
+    }
+}
+export {getSupplierRequests,supplierRequestApprovel,getApprovedSupplier,getSupplierById};
