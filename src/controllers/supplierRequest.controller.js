@@ -95,7 +95,7 @@ const getSupplierById = async (req,res)=>{
         if(!id){
             return res.status(400).json({message:'Id is required'})
         }
-        const supplier = await Supplier.findById(id).populate('userId','name email');
+        const supplier = await Supplier.findById(id).populate('userId','name email phoneNumber');
         if(!supplier){
             return res.status(404).json({message:'Supplier Not Found',data:supplier});
         }
