@@ -44,6 +44,7 @@ const createOrder = async (req, res) => {
     }
 };
 
+//Get Order Details For Mechanic and Supplier
 const getOrder = async (req, res) => {
     try {
         const id = req.user.id;
@@ -87,5 +88,24 @@ const getOrder = async (req, res) => {
     }
 }
 
+//Get All Order Details For Admin
+const getAllOrder = async (req,res)=>{
+    try{
+        const orders=await Order.find().populate({
+                    path: "quotationId",
+                    populate: {
+                        path: "product.sparePartId",
+                        model: "SparePart",
+                        select: "name image description" // only fetch fields you need
+                    }
+                });
+        if(orders.length===0){
+            return res.status(404).json({message:"Curently There Is No Order"})
+        }
+        return res.status(200).json({message:'Order Data Fetched',data:orders});
+    }catch(error){
+        return res.status(500).json({message:'Internal Server Error',error:error});
+    }
+}
 
-export { createOrder, getOrder };
+export { createOrder, getOrder , getAllOrder};
